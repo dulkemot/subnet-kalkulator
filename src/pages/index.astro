@@ -1,0 +1,86 @@
+---
+---
+<html lang="id"><head><meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#0B1526" />
+<title>Kalkulator Subnet IPv4</title>
+<meta name="description" content="Hitung network, broadcast, range host, dan netmask dari IP/prefix. Offline, mobile-first." />
+<style is:global>
+*{box-sizing:border-box}body{margin:0;background:#0B1526;color:#E7EEF7;font-family:Inter,'Segoe UI',system-ui,Arial}
+.wrap{max-width:640px;margin:0 auto;padding:0 16px 40px}
+header{padding:20px 0 6px}header b{font-size:20px}header small{display:block;color:#8DBDFF;font-size:12px;margin-top:2px}
+.card{background:#111F36;border:1px solid #22365A;border-radius:14px;padding:16px;margin-top:12px}
+label{font-size:12px;color:#8DBDFF;display:block;margin:10px 0 4px}
+input[type=text]{width:100%;padding:13px;border-radius:10px;border:1px solid #2A3F5F;background:#0B1526;color:#E7EEF7;font-size:18px;font-family:monospace}
+input[type=range]{width:100%;accent-color:#FF8A00;height:36px}
+.big{font-size:15px;color:#FF8A00;font-weight:800}
+table{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px}
+td{padding:9px 6px;border-top:1px solid #22365A;vertical-align:top}
+td.k{color:#8DBDFF;width:118px}td.v{font-family:monospace;word-break:break-all}
+td.v button{margin-left:8px;background:#22365A;color:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:12px}
+.err{color:#FF7B72;font-size:13px;margin-top:8px}
+.cheat{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.cheat button{background:#0E1B31;border:1px solid #2A3F5F;color:#BFD2EC;border-radius:100px;padding:9px 15px;font-size:13px;font-family:monospace}
+.note{font-size:12.5px;color:#6B84A3;line-height:1.6;margin-top:12px}
+</style></head>
+<body><div class="wrap">
+<header><b>🧮 Kalkulator Subnet</b><small>IPv4 • offline • untuk teknisi jaringan</small></header>
+
+<div class="card">
+<label>Alamat IP</label>
+<input type="text" id="ip" inputmode="numeric" value="192.168.88.1" maxlength="15" />
+<label>Prefix: <span class="big" id="pval">/24</span></label>
+<input type="range" id="prefix" min="1" max="32" value="24" />
+<div class="err" id="err"></div>
+</div>
+
+<div class="card"><table id="out"></table></div>
+
+<div class="card">
+<b>Prefix populer</b>
+<div class="cheat" id="cheat"></div>
+<p class="note">/30 = link point-to-point (2 host) • /29 = 6 host • /28 = 14 host • /24 = 254 host • /23 = 510 host. Klik untuk isi otomatis.</p>
+</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const ipToInt = s => s.trim().split(".").reduce((a, o) => (a << 8) + parseInt(o, 10), 0) >>> 0;
+const intToIp = n => [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join(".");
+const toBin = n => [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].map(o => o.toString(2).padStart(8, "0")).join(".");
+const validIp = s => { const p = s.trim().split("."); return p.length === 4 && p.every(o => /^\d{1,3}$/.test(o) && +o >= 0 && +o <= 255); };
+
+function calc() {
+  const ip = $("ip").value, pre = +$("prefix").value;
+  $("pval").textContent = "/" + pre;
+  if (!validIp(ip)) { $("err").textContent = "Format IP salah. Contoh: 192.168.1.10"; $("out").innerHTML = ""; return; }
+  $("err").textContent = "";
+  const addr = ipToInt(ip);
+  const mask = pre === 0 ? 0 : (0xFFFFFFFF << (32 - pre)) >>> 0;
+  const net = (addr & mask) >>> 0, bc = (net | (~mask >>> 0)) >>> 0;
+  const total = Math.pow(2, 32 - pre);
+  const usable = pre >= 31 ? total : total - 2;
+  const first = pre >= 31 ? intToIp(net) : intToIp(net + 1);
+  const last = pre >= 31 ? intToIp(bc) : intToIp(bc - 1);
+  const rows = [
+    ["Network", intToIp(net)], ["Broadcast", intToIp(bc)],
+    ["Netmask", intToIp(mask)], ["Wildcard", intToIp((~mask >>> 0))],
+    ["Range host", first + " – " + last],
+    ["Total IP", total.toLocaleString("id-ID")],
+    ["Host pakai", usable.toLocaleString("id-ID") + (pre >= 31 ? " (point-to-point)" : "")],
+    ["Biner IP", toBin(addr)], ["Biner mask", toBin(mask)],
+  ];
+  $("out").innerHTML = rows.map(([k, v]) =>
+    `<tr><td class="k">${k}</td><td class="v">${v}<button onclick="navigator.clipboard.writeText('${v.split(" ")[0]}')">Salin</button></td></tr>`).join("");
+}
+
+[30, 29, 28, 27, 26, 25, 24, 23, 22, 16, 8].forEach(p => {
+  const b = document.createElement("button");
+  b.textContent = "/" + p;
+  b.onclick = () => { $("prefix").value = p; calc(); };
+  $("cheat").appendChild(b);
+});
+$("ip").oninput = calc; $("prefix").oninput = calc;
+calc();
+</script>
+</body></html>

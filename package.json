@@ -1,0 +1,1 @@
+{"name":"subnet-kalkulator","type":"module","private":false,"version":"1.0.0","description":"Kalkulator subnet IPv4 Indonesia - mobile first, offline","scripts":{"dev":"astro dev","build":"astro build","preview":"astro preview"},"dependencies":{"astro":"^4.16.0"},"engines":{"node":">=18"}}
